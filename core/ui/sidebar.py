@@ -14,7 +14,12 @@ from pathlib import Path
 from core.models.character import Character
 from core.models.world import World, WeatherType, TimeOfDay
 from config.settings import CHARACTERS_DIR
+from config.logging import LoggingConfig
 
+
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 def render_sidebar(on_character_select: Callable[[str], None],
                   on_world_select: Callable[[str], None],

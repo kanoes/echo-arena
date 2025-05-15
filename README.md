@@ -19,17 +19,20 @@
 ## インストール方法
 
 1. リポジトリをクローン:
+
 ```
 git clone https://github.com/yourusername/echo-arena.git
 cd echo-arena
 ```
 
 2. 依存パッケージをインストール:
+
 ```
 pip install -r requirements.txt
 ```
 
 3. `.env`ファイルを作成し、OpenAI APIキーを設定:
+
 ```
 OPENAI_API_KEY=your_api_key_here
 DEFAULT_MODEL=gpt-4-turbo
@@ -43,6 +46,7 @@ LOG_LEVEL=INFO
 ## 使い方
 
 1. アプリケーションを起動:
+
 ```
 python main.py
 ```
@@ -98,4 +102,10 @@ echoarena/
 ├── tests/
 │   └── test_character.py            # 単体テストファイル
 └── requirements.txt                 # 使用パッケージ一覧
+```
+
+## 起動
+
+```bash
+python3 -m streamlit run app.py
 ```

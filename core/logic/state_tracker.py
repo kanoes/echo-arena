@@ -4,7 +4,6 @@
 ゲーム内の状態（キャラクター、世界、プレイヤーなど）を追跡・更新するモジュール
 """
 
-import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
@@ -12,11 +11,12 @@ from core.models.player import Player
 from core.models.character import Character
 from core.models.world import World, WeatherType, TimeOfDay
 from core.models.enums import EmotionType, ActionType
+from config.logging import LoggingConfig
 
 
-# ロガーの設定
-logger = logging.getLogger(__name__)
-
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 class StateTracker:
     """ゲーム状態の追跡および更新を管理するクラス"""

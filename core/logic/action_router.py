@@ -4,20 +4,18 @@
 ユーザー入力を解析し、適切なアクションへルーティングするモジュール
 """
 
-import logging
-import json
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, Optional, Any, Tuple
 
 from core.services.llm_client import LLMClient
-from core.models.enums import ActionType, EmotionType
 from core.logic.state_tracker import StateTracker
 from core.logic.memory_manager import MemoryManager
 from config.settings import DEFAULT_MODEL, DEFAULT_TEMPERATURE
+from config.logging import LoggingConfig
 
 
-# ロガーの設定
-logger = logging.getLogger(__name__)
-
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 class ActionRouter:
     """ユーザー入力を分析し、適切なアクションへルーティングするクラス"""
@@ -181,14 +179,40 @@ class ActionRouter:
         character_prompt = self._build_character_prompt(character)
         
         # LLMを使って応答を生成
-        response = self.llm_client.generate_character_response(
+        response_data = self.llm_client.generate_character_response(
             character_prompt, 
             user_input, 
             memory_context, 
             world_context,
             model=DEFAULT_MODEL,
-            temperature=DEFAULT_TEMPERATURE
+            temperature=DEFAULT_TEMPERATURE,
+            with_emotion=True  # 感情データも取得
         )
+        
+        # 応答テキストとメタデータを分離
+        if isinstance(response_data, dict):
+            response = response_data.get("text", "")
+            emotion_data = response_data.get("emotions", {})
+            relationship_change = response_data.get("relationship_change", 0.0)
+        else:
+            response = response_data
+            emotion_data = {}
+            relationship_change = 0.0
+        
+        # 感情データがあれば、キャラクターの感情状態を更新
+        for emotion_type, value_change in emotion_data.items():
+            try:
+                if emotion_type in character.emotions:
+                    character.update_emotion(emotion_type, value_change)
+                    logger.debug(f"キャラクター '{character.name}' の感情 '{emotion_type}' を {value_change:+.2f} 変化させました")
+            except Exception as e:
+                logger.error(f"感情の更新に失敗しました: {str(e)}")
+        
+        # 親密度の変化を計算（応答内容から推測）
+        if relationship_change == 0:
+            # LLMから明示的な関係変化がない場合、文脈から推定
+            sentiment_score = self._estimate_sentiment(response)
+            relationship_change = sentiment_score * 0.05  # 小さな変化にする
         
         # この対話を記憶として追加
         interaction_memory = f"プレイヤー: {user_input}\n{character.name}: {response}"
@@ -199,10 +223,14 @@ class ActionRouter:
             character_id, interaction_memory, importance, emotion, [self.state_tracker.player.id]
         )
         
+        # 最終交流時間を更新
+        character.update_last_interaction()
+        
         # 状態変化を記録
         state_changes = {
             "character_id": character_id,
-            "interaction": True
+            "interaction": True,
+            "relationship_change": relationship_change
         }
         
         # 記憶を整理
@@ -342,3 +370,39 @@ class ActionRouter:
         """
         
         return base_description + additional 
+
+    def _estimate_sentiment(self, text: str) -> float:
+        """テキストから感情スコアを推定（簡易版）
+        
+        Args:
+            text: 分析するテキスト
+            
+        Returns:
+            感情スコア（-0.2〜0.2の範囲）
+        """
+        # ポジティブな表現
+        positive_words = [
+            "ありがとう", "嬉しい", "楽しい", "素晴らしい", "良い", "好き", "嬉し", 
+            "幸せ", "感謝", "笑顔", "助かる", "信頼", "尊敬", "大好き", "賛成",
+            "よかった", "うれしい", "すごい", "素敵"
+        ]
+        
+        # ネガティブな表現
+        negative_words = [
+            "残念", "悲しい", "怒り", "不満", "嫌い", "困る", "怖い", "不安", 
+            "恐れ", "嫌悪", "迷惑", "反対", "疑問", "悪い", "だめ", "ごめん",
+            "申し訳", "失望", "がっかり", "嫌だ", "ひどい"
+        ]
+        
+        text_lower = text.lower()
+        
+        # 単純な出現回数ベースのスコアリング
+        positive_count = sum(1 for word in positive_words if word in text_lower)
+        negative_count = sum(1 for word in negative_words if word in text_lower)
+        
+        # 総単語数で正規化
+        total_count = max(1, positive_count + negative_count)
+        sentiment_score = (positive_count - negative_count) / total_count
+        
+        # -0.2〜0.2の範囲に制限
+        return max(-0.2, min(0.2, sentiment_score)) 

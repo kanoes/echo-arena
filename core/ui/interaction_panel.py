@@ -6,7 +6,12 @@
 
 import streamlit as st
 from typing import Callable, Dict, Any
+from config.logging import LoggingConfig
 
+
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 def render_interaction_panel(on_submit: Callable[[str], Dict[str, Any]]) -> None:
     """対話パネルをレンダリング

@@ -5,7 +5,12 @@
 """
 
 from enum import Enum, auto
+from config.logging import LoggingConfig
 
+
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 class EmotionType(Enum):
     """キャラクターの感情タイプ"""

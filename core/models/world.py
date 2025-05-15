@@ -8,7 +8,12 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from enum import Enum
+from config.logging import LoggingConfig
 
+
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 class WeatherType(Enum):
     """天候タイプ"""

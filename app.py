@@ -1,16 +1,13 @@
 """
-EchoArena メインアプリケーション
+EchoArena Streamlit Application
 
 Streamlit UIとバックエンドロジックの接続を担当
 """
 
 import streamlit as st
-import os
 import json
 import uuid
-from datetime import datetime
-from pathlib import Path
-import logging
+from datetime import datetime   
 
 from config.settings import (
     OPENAI_API_KEY, DEFAULT_MODEL, DEFAULT_TEMPERATURE, MAX_TOKENS,
@@ -18,8 +15,8 @@ from config.settings import (
 )
 from core.models.character import Character
 from core.models.player import Player
-from core.models.world import World, WorldTime, Location, WeatherType, TimeOfDay
-from core.models.enums import EmotionType, ActionType, RelationshipType
+from core.models.world import World, WorldTime, Location, WeatherType
+from core.models.enums import EmotionType
 from core.logic.state_tracker import StateTracker
 from core.logic.memory_manager import MemoryManager
 from core.logic.action_router import ActionRouter
@@ -30,18 +27,13 @@ from core.ui.output_display import (
     render_scene_description, render_character_info, 
     render_player_status, render_world_status, render_event_log
 )
+from utils.create_sample import create_sample_character, create_sample_world
+from config.logging import LoggingConfig
 
 
-# ロギングの設定
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOGS_DIR / "app.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 
 def init_session_state():
@@ -62,14 +54,15 @@ def init_session_state():
         st.session_state.show_character_edit = False
         st.session_state.new_character_data = None
         st.session_state.edit_character_id = None
+        # ゲーム開始状態フラグを追加
+        st.session_state.game_started = False
+        # キャラクター設定が完了したかどうかのフラグ
+        st.session_state.setup_complete = False
 
 
 def load_available_characters():
     """利用可能なキャラクターを読み込む"""
     characters = {}
-    
-    # キャラクターディレクトリが存在しない場合は作成
-    CHARACTERS_DIR.mkdir(parents=True, exist_ok=True)
     
     for file_path in CHARACTERS_DIR.glob("*.json"):
         try:
@@ -110,72 +103,6 @@ def load_available_worlds():
         return load_available_worlds()
         
     return worlds
-
-
-def create_sample_character():
-    """サンプルキャラクターを作成"""
-    sample_character = {
-        "id": "sample_npc",
-        "name": "アリス",
-        "description": "魔法学校の優等生。幼い頃から魔法の才能に恵まれ、特に風の魔法が得意。",
-        "personality": "好奇心旺盛で明るい性格。新しいことを学ぶのが大好きだが、時々夢見がちになることも。人付き合いは得意で、誰とでもすぐに打ち解ける。",
-        "background": "裕福な魔法使いの家庭に生まれ、5歳の時に魔法の才能が開花。現在は魔法学校の上級生として、様々な魔法を学んでいる。将来は魔法研究者になることを夢見ている。",
-        "emotions": {
-            "JOY": 0.7,
-            "TRUST": 0.6,
-            "ANTICIPATION": 0.8
-        }
-    }
-    
-    file_path = CHARACTERS_DIR / "sample_npc.json"
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(sample_character, f, ensure_ascii=False, indent=2)
-        
-    logger.info("サンプルキャラクターを作成しました")
-
-
-def create_sample_world():
-    """サンプル世界を作成"""
-    sample_world = {
-        "id": "fantasy_world",
-        "name": "ファンタジー世界",
-        "description": "魔法と冒険に満ちた世界。ドラゴンや精霊など様々な幻想的な生き物が存在する。",
-        "locations": [
-            {
-                "id": "magic_academy",
-                "name": "魔法学園",
-                "description": "若い魔法使いたちが学ぶ巨大な学園。古い石造りの建物には数千年の歴史がある。",
-                "connected_locations": ["city_square", "library"],
-                "items": ["魔法の杖", "古い魔道書", "クリスタルボール"]
-            },
-            {
-                "id": "city_square",
-                "name": "中央広場",
-                "description": "王国の中心に位置する広い広場。噴水や露店が立ち並び、常に人で賑わっている。",
-                "connected_locations": ["magic_academy", "inn", "shop"],
-                "items": ["水筒", "パン", "リンゴ"]
-            },
-            {
-                "id": "inn",
-                "name": "冒険者の宿",
-                "description": "冒険者たちが集まる古い宿屋。暖炉の火が温かく、様々な噂話が飛び交う。",
-                "connected_locations": ["city_square"],
-                "items": ["ビール", "ベッド", "ろうそく"]
-            }
-        ],
-        "starting_location": "magic_academy",
-        "time": {
-            "hour": 12,
-            "minute": 0
-        },
-        "weather": "SUNNY"
-    }
-    
-    file_path = WORLD_TEMPLATES_DIR / "fantasy_world.json"
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(sample_world, f, ensure_ascii=False, indent=2)
-        
-    logger.info("サンプル世界を作成しました")
 
 
 def load_character(character_id):
@@ -305,6 +232,10 @@ def handle_character_select(character_id):
         # 選択されたキャラクターを現在の対話対象として設定
         st.session_state.state_tracker.current_interaction_target = character.id
         
+        # 親密度の初期設定
+        if character.id not in st.session_state.player.relationships:
+            st.session_state.player.relationships[character.id] = 0.0
+        
         st.session_state.events.append(f"{character.name} が会話に参加しました。")
         logger.info(f"キャラクター '{character.name}' を選択しました")
 
@@ -375,9 +306,123 @@ def handle_user_input(user_input):
         character_id = state_changes["character_id"]
         if character_id in st.session_state.state_tracker.characters:
             character = st.session_state.state_tracker.characters[character_id]
+            
+            # 親密度の更新
+            if character_id in st.session_state.player.relationships:
+                relationship_change = state_changes.get("relationship_change", 0.0)
+                st.session_state.player.update_relationship(character_id, relationship_change)
+                if relationship_change != 0.0:
+                    st.session_state.events.append(f"{character.name} との親密度が変化しました。")
+            
+            # キャラクターとの対話履歴を追加
             st.session_state.events.append(f"{character.name} と会話しました。")
     
     return response, state_changes
+
+def render_setup_screen():
+    """ゲーム開始前の設定画面をレンダリング"""
+    st.title("🎮 Echo Arena - ゲーム設定")
+    
+    # 利用可能なキャラクターと世界を読み込む
+    if not st.session_state.available_characters:
+        st.session_state.available_characters = load_available_characters()
+        
+    if not st.session_state.available_worlds:
+        st.session_state.available_worlds = load_available_worlds()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.header("👤 プレイヤー設定")
+        player_name = st.text_input("あなたの名前", value=st.session_state.get("player_name", ""))
+        character_name = st.text_input("キャラクター名", value=st.session_state.get("character_name", ""))
+        
+        if not player_name or not character_name:
+            st.warning("プレイヤー名とキャラクター名を入力してください")
+
+    with col2:
+        st.header("🌍 世界選択")
+        world_options = list(st.session_state.available_worlds.items())
+        world_names = [name for _, name in world_options]
+        world_ids = [id for id, _ in world_options]
+        
+        if world_ids:
+            selected_world_index = 0
+            if "selected_world_id" in st.session_state and st.session_state.selected_world_id in world_ids:
+                selected_world_index = world_ids.index(st.session_state.selected_world_id)
+                
+            selected_world_name = st.selectbox("プレイする世界を選択", world_names, index=selected_world_index)
+            selected_world_id = world_ids[world_names.index(selected_world_name)]
+            st.session_state.selected_world_id = selected_world_id
+            
+            # 選択された世界の情報を表示
+            world = load_world(selected_world_id)
+            if world:
+                st.markdown(f"**説明**: {world.description}")
+        else:
+            st.error("利用可能な世界が見つかりません")
+            selected_world_id = None
+    
+    # NPCキャラクター選択セクション
+    st.header("🧙 参加させるNPCを選択")
+    
+    character_options = list(st.session_state.available_characters.items())
+    if character_options:
+        # 選択されたNPCのリスト
+        if "selected_npcs" not in st.session_state:
+            st.session_state.selected_npcs = []
+            
+        # 列を3つ作成
+        cols = st.columns(3)
+        for i, (char_id, char_name) in enumerate(character_options):
+            with cols[i % 3]:
+                if st.checkbox(char_name, key=f"npc_{char_id}"):
+                    if char_id not in st.session_state.selected_npcs:
+                        st.session_state.selected_npcs.append(char_id)
+                else:
+                    if char_id in st.session_state.selected_npcs:
+                        st.session_state.selected_npcs.remove(char_id)
+                
+                # キャラクター情報を簡単に表示
+                character = load_character(char_id)
+                if character:
+                    st.caption(character.description[:100] + "..." if len(character.description) > 100 else character.description)
+    else:
+        st.warning("利用可能なNPCがありません")
+    
+    # 新キャラクター作成ボタン
+    if st.button("➕ 新しいNPCを作成"):
+        st.session_state.show_character_creation = True
+        st.rerun()
+    
+    # ゲーム開始ボタン
+    start_col1, start_col2, start_col3 = st.columns([1, 2, 1])
+    with start_col2:
+        if st.button("🎮 ゲームを開始", type="primary", use_container_width=True):
+            if not player_name or not character_name:
+                st.error("プレイヤー名とキャラクター名を入力してください")
+            elif not selected_world_id:
+                st.error("プレイする世界を選択してください")
+            elif not st.session_state.selected_npcs:
+                st.error("少なくとも1人のNPCを選択してください")
+            else:
+                # プレイヤー情報を保存
+                st.session_state.player_name = player_name
+                st.session_state.character_name = character_name
+                
+                # ゲーム開始フラグをセット
+                st.session_state.game_started = True
+                st.session_state.setup_complete = True
+                
+                # 世界を読み込む
+                handle_world_select(selected_world_id)
+                
+                # 選択したNPCを追加
+                for char_id in st.session_state.selected_npcs:
+                    if char_id:
+                        handle_character_select(char_id)
+                
+                st.rerun()
 
 
 def main():
@@ -392,6 +437,13 @@ def main():
     
     # セッション状態の初期化
     init_session_state()
+    
+    # ゲームがまだ開始されていない場合は設定画面を表示
+    if not st.session_state.game_started:
+        render_setup_screen()
+        return
+    
+    # ここからはゲームが開始された後の処理
     
     # 利用可能なキャラクターと世界を読み込む
     if not st.session_state.available_characters:
@@ -456,9 +508,13 @@ def main():
             if "new_character_data" in st.session_state:
                 del st.session_state.new_character_data
             
-            # 新しいキャラクターを選択
-            handle_character_select(character_id)
-            st.rerun()
+            # ゲームが開始されていない場合
+            if not st.session_state.game_started:
+                st.rerun()
+            else:
+                # ゲーム開始済みの場合は新しいキャラクターを選択
+                handle_character_select(character_id)
+                st.rerun()
     
     # ユーザー設定を更新
     st.session_state.player_name = user_settings["player"]["name"]
@@ -473,6 +529,20 @@ def main():
     # メインコンテンツ
     if st.session_state.world and st.session_state.player and st.session_state.state_tracker:
         st.session_state.initialized = True
+        
+        # 設定を変更して最初からやり直すボタン
+        if st.sidebar.button("⚙️ 設定をリセットして最初から始める"):
+            st.session_state.game_started = False
+            st.session_state.setup_complete = False
+            st.session_state.initialized = False
+            st.session_state.world = None
+            st.session_state.player = None
+            st.session_state.state_tracker = None
+            st.session_state.action_router = None
+            st.session_state.memory_manager = None
+            st.session_state.messages = []
+            st.session_state.events = []
+            st.rerun()
         
         # シーン説明を表示
         scene_description = st.session_state.state_tracker.get_scene_description()
@@ -497,7 +567,7 @@ def main():
             
             # キャラクター情報を表示
             for character_id, character in st.session_state.state_tracker.characters.items():
-                render_character_info(character, show_details=True)
+                render_character_info(character, show_details=True, player_relationships=st.session_state.player.relationships)
     else:
         # 初期セットアップガイド
         st.markdown("""
@@ -506,18 +576,13 @@ def main():
         テキスト型TRPG（テーブルトークRPG）シミュレーターです。
         
         ### 始めるには:
-        1. サイドバーであなたの名前とキャラクター名を入力してください
-        2. プレイする世界を選択してください
-        3. 会話したいNPCキャラクターを選んでください
+        1. 「⚙️ 設定をリセットして最初から始める」ボタンをクリックして初期設定画面に戻ってください。
+        2. あなたの名前とキャラクター名、世界を選択してください。
+        3. 会話したいNPCキャラクターを選んでください。
+        4. 「ゲームを開始」ボタンをクリックしてください。
         
-        準備ができたら、会話を始めましょう！自然言語でキャラクターと会話したり、
-        行動を起こしたりできます。
+        自然言語でキャラクターと会話したり、行動を起こしたりできます。
         
-        ### APIキーの設定方法:
-        1. `.env`ファイルに`OPENAI_API_KEY=your_key_here`を設定する方法
-        2. 環境変数に`NPC_名前_OPENAI_KEY=your_key_here`を設定する方法
-           - この形式で設定するとNPCごとに別々のAPIキーを使い分けられます
-           - キャラクター作成/編集時に環境変数からキーを選択できます
         """)
 
 

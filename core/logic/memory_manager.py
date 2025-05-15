@@ -4,18 +4,18 @@
 キャラクターの短期・長期記憶の管理と検索ロジックを提供するモジュール
 """
 
-import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 import heapq
 
 from core.models.character import Character, Memory
 from config.settings import MEMORY_RETENTION
+from config.logging import LoggingConfig
 
 
-# ロガーの設定
-logger = logging.getLogger(__name__)
-
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 class MemoryManager:
     """キャラクターの記憶を管理するクラス"""

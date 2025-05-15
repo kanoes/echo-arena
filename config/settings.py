@@ -23,7 +23,7 @@ for dir_path in [DATA_DIR, CHARACTERS_DIR, WORLD_TEMPLATES_DIR, LOGS_DIR]:
 
 # OpenAI API設定
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4-turbo")
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")
 DEFAULT_TEMPERATURE = float(os.getenv("DEFAULT_TEMPERATURE", "0.7"))
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "4096"))
 

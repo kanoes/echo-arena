@@ -1,55 +1,41 @@
 """
 出力表示UI
 
-ゲーム状態やキャラクター情報を表示するUIコンポーネント
+ゲーム状態、キャラクター情報、プレイヤーステータスなどの表示UIコンポーネント
 """
 
 import streamlit as st
 from typing import Dict, List, Optional, Any
 import random
+from datetime import datetime
 
 from core.models.character import Character
 from core.models.world import World, WeatherType, TimeOfDay
 from core.models.player import Player
+from config.logging import LoggingConfig
 
 
-def render_scene_description(scene_description: str) -> None:
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
+
+def render_scene_description(description: str) -> None:
     """シーン説明を表示
     
     Args:
-        scene_description: シーン説明テキスト
+        description: シーン説明テキスト
     """
-    with st.container():
-        st.markdown("## 🌍 現在の状況")
-        
-        # より読みやすいスタイルを適用
-        styled_description = scene_description.replace(
-            "【場所】", "**【場所】**"
-        ).replace(
-            "【時間】", "**【時間】**"
-        ).replace(
-            "【天候】", "**【天候】**"
-        ).replace(
-            "【登場人物】", "**【登場人物】**"
-        ).replace(
-            "【アイテム】", "**【アイテム】**"
-        )
-        
-        # 各セクション間に適切な行間を確保
-        styled_description = styled_description.replace("\n\n", "\n")
-        
-        st.markdown(styled_description)
-        
-        # 明確な境界線を追加
-        st.markdown("---")
+    st.markdown(f"## 🌍 現在の状況")
+    st.markdown(description)
 
 
-def render_character_info(character: Character, show_details: bool = False) -> None:
+def render_character_info(character: Character, show_details: bool = False, player_relationships: dict = None) -> None:
     """キャラクター情報を表示
     
     Args:
         character: キャラクターオブジェクト
         show_details: 詳細情報を表示するかどうか
+        player_relationships: プレイヤーとNPCの関係性辞書
     """
     with st.expander(f"ℹ️ {character.name} の情報", expanded=False):
         st.markdown(f"**説明**: {character.description}")
@@ -57,6 +43,29 @@ def render_character_info(character: Character, show_details: bool = False) -> N
         if show_details:
             st.markdown(f"**性格**: {character.personality}")
             st.markdown(f"**背景**: {character.background}")
+            
+            # 親密度の表示
+            if player_relationships and character.id in player_relationships:
+                intimacy = player_relationships[character.id]
+                intimacy_value = (intimacy + 1) / 2  # -1.0〜1.0 から 0.0〜1.0 に変換
+                
+                intimacy_text = "親密度"
+                if intimacy > 0.8:
+                    intimacy_text = "👍 親密度（非常に良好）"
+                elif intimacy > 0.5:
+                    intimacy_text = "😊 親密度（良好）"
+                elif intimacy > 0.1:
+                    intimacy_text = "🙂 親密度（やや良好）"
+                elif intimacy > -0.1:
+                    intimacy_text = "😐 親密度（中立）"
+                elif intimacy > -0.5:
+                    intimacy_text = "🙁 親密度（やや低い）"
+                elif intimacy > -0.8:
+                    intimacy_text = "😠 親密度（低い）"
+                else:
+                    intimacy_text = "👎 親密度（非常に低い）"
+                
+                st.progress(intimacy_value, text=f"{intimacy_text} ({intimacy:.2f})")
             
             # 感情状態
             st.markdown("**感情状態**:")
@@ -73,6 +82,19 @@ def render_character_info(character: Character, show_details: bool = False) -> N
                         st.progress(value, text=f"{emotion} ({value:.1f})")
             else:
                 st.markdown("特に強い感情はありません")
+            
+            # 最終交流時間
+            if hasattr(character, 'last_interaction') and character.last_interaction:
+                time_diff = datetime.now() - character.last_interaction
+                hours, remainder = divmod(time_diff.total_seconds(), 3600)
+                minutes, _ = divmod(remainder, 60)
+                
+                if hours > 0:
+                    time_str = f"{int(hours)}時間{int(minutes)}分前"
+                else:
+                    time_str = f"{int(minutes)}分前"
+                
+                st.caption(f"最後の交流: {time_str}")
 
 
 def render_player_status(player: Player) -> None:
@@ -81,73 +103,51 @@ def render_player_status(player: Player) -> None:
     Args:
         player: プレイヤーオブジェクト
     """
-    with st.container():
-        st.markdown("### 📊 プレイヤーステータス")
-        
-        # 基本情報
+    with st.expander("👤 プレイヤー情報", expanded=False):
+        st.markdown(f"**名前**: {player.name}")
         st.markdown(f"**キャラクター名**: {player.character_name}")
+        st.markdown(f"**現在地**: {player.current_location}")
         
-        # インベントリ
         if player.inventory:
             st.markdown("**所持品**:")
-            st.markdown(", ".join(player.inventory))
-        else:
-            st.markdown("**所持品**: なし")
-        
-        # 関係性
-        if player.relationships:
-            st.markdown("**関係性**:")
-            relationships_sorted = sorted(
-                [(name, value) for name, value in player.relationships.items()],
-                key=lambda x: x[1],
-                reverse=True
-            )
-            
-            for name, value in relationships_sorted:
-                relation_text = _get_relation_text(value)
-                st.markdown(f"* {name}: {relation_text} ({value:.1f})")
+            for item in player.inventory:
+                st.markdown(f"- {item}")
 
 
 def render_world_status(world: World) -> None:
-    """世界ステータスを表示
+    """世界の状態を表示
     
     Args:
         world: 世界オブジェクト
     """
-    with st.container():
-        # タイトルを追加して、セクションとして明確に識別できるようにする
-        st.markdown("### 🗺️ 世界情報")
-        
-        cols = st.columns(3)
-        
-        with cols[0]:
-            st.markdown(f"**時間**: {world.time.get_time_of_day()} ({world.time.current_time.strftime('%H:%M')})")
-            
-        with cols[1]:
-            st.markdown(f"**天候**: {world.current_weather}")
-            
-        with cols[2]:
-            location = world.get_current_location()
-            if location:
-                st.markdown(f"**場所**: {location.name}")
-        
-        # 世界情報の後にも境界線を追加
-        st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # 場所表示
+        current_location = world.get_current_main_location()
+        if current_location:
+            st.info(f"📍 **場所**: {current_location.name}")
+    
+    with col2:
+        # 時間表示
+        current_time = world.time.current_time
+        time_str = current_time.strftime("%H:%M")
+        st.info(f"🕒 **時間**: {time_str}")
+    
+    with col3:
+        # 天気表示
+        st.info(f"☁️ **天気**: {world.current_weather.value}")
 
 
-def render_event_log(events: List[str], max_display: int = 5) -> None:
+def render_event_log(events: list) -> None:
     """イベントログを表示
     
     Args:
-        events: イベントリスト
-        max_display: 表示する最大数
+        events: イベントログのリスト
     """
     with st.expander("📜 イベントログ", expanded=False):
-        if events:
-            for event in events[-max_display:]:
-                st.markdown(f"* {event}")
-        else:
-            st.markdown("イベントはまだありません")
+        for event in events[-10:]:  # 最新の10件のみ表示
+            st.text(event)
 
 
 def _get_relation_text(value: float) -> str:

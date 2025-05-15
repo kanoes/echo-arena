@@ -9,7 +9,12 @@ from typing import Dict, List, Optional
 from datetime import datetime
 
 from core.models.character import Character
+from config.logging import LoggingConfig
 
+
+# ログ設定
+logging_config = LoggingConfig()
+logger = logging_config.get_logger()
 
 @dataclass
 class Player:
