@@ -1,0 +1,37 @@
+2025-05-15 11:22:05,221 - __main__ - INFO - サンプルキャラクターを作成しました
+2025-05-15 11:22:05,222 - __main__ - INFO - サンプル世界を作成しました
+2025-05-15 11:30:13,296 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:30:13,297 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:30:13,297 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:30:13,297 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:31:15,717 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:31:15,718 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:31:15,718 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:31:15,718 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:32:55,377 - __main__ - ERROR - キャラクターファイル '/Users/kanorin/Documents/echo-arena/data/characters/66bbf1dc-1c3d-4a60-a5f5-6398fcc70830.json' の読み込みに失敗しました: Expecting value: line 1 column 1 (char 0)
+2025-05-15 11:32:55,432 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:32:55,432 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:32:55,432 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:32:55,433 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:35:00,133 - services.llm_client - ERROR - ユーザー入力分析中にエラーが発生しました: OpenAI API キーが設定されていません。
+2025-05-15 11:39:29,749 - __main__ - ERROR - キャラクターファイル '/Users/kanorin/Documents/echo-arena/data/characters/66bbf1dc-1c3d-4a60-a5f5-6398fcc70830.json' の読み込みに失敗しました: Expecting value: line 1 column 1 (char 0)
+2025-05-15 11:39:29,811 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:39:29,812 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:39:29,812 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:39:29,813 - __main__ - INFO - キャラクター 'アリス' を選択しました
+2025-05-15 11:39:57,897 - services.llm_client - ERROR - ユーザー入力分析中にエラーが発生しました: OpenAI API キーが設定されていません。
+2025-05-15 11:51:37,733 - __main__ - ERROR - キャラクターファイル '/Users/kanorin/Documents/echo-arena/data/characters/66bbf1dc-1c3d-4a60-a5f5-6398fcc70830.json' の読み込みに失敗しました: Expecting value: line 1 column 1 (char 0)
+2025-05-15 11:51:37,941 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:51:37,942 - __main__ - ERROR - キャラクター 'アリス' にAPIキーが設定されていません。
+2025-05-15 11:51:37,943 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:51:37,943 - __main__ - ERROR - キャラクター 'アリス' にAPIキーが設定されていません。
+2025-05-15 11:51:56,776 - __main__ - ERROR - キャラクターファイル '/Users/kanorin/Documents/echo-arena/data/characters/66bbf1dc-1c3d-4a60-a5f5-6398fcc70830.json' の読み込みに失敗しました: Expecting value: line 1 column 1 (char 0)
+2025-05-15 11:51:56,830 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:51:56,832 - __main__ - ERROR - キャラクター 'アリス' にAPIキーが設定されていません。
+2025-05-15 11:51:56,832 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:51:56,833 - __main__ - ERROR - キャラクター 'アリス' にAPIキーが設定されていません。
+2025-05-15 11:55:29,112 - __main__ - ERROR - キャラクターファイル '/Users/kanorin/Documents/echo-arena/data/characters/66bbf1dc-1c3d-4a60-a5f5-6398fcc70830.json' の読み込みに失敗しました: Expecting value: line 1 column 1 (char 0)
+2025-05-15 11:55:29,166 - services.llm_client - WARNING - デフォルトのOpenAI API キーが設定されていません。各キャラクターに個別のAPIキーを設定してください。
+2025-05-15 11:55:29,167 - __main__ - ERROR - キャラクター 'アリス' にAPIキーが設定されていません。
+2025-05-15 11:55:29,167 - __main__ - INFO - 世界 'ファンタジー世界' を選択しました
+2025-05-15 11:55:29,168 - __main__ - ERROR - キャラクター 'アリス' にAPIキーが設定されていません。
